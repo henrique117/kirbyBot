@@ -46,7 +46,7 @@ export default class APICalls {
             const scores: any[] = []
             map.game.scores.map((score: any) => {
                 scores.push({
-                    acc: Math.floor(score.accuracy * 10000) / 100,
+                    acc: Math.floor(score.accuracy * 10000) / 10000,
                     max_combo: score.max_combo,
                     mods: score.mods,
                     score: score.score,
@@ -58,8 +58,9 @@ export default class APICalls {
                         n0: score.statistics.count_miss
                     }
                 })
+                console.log(Math.floor(score.accuracy * 10000) / 10000)
             })
-
+            
             callback.scores.push({
                 beatmap_id: map.game.beatmap.id,
                 beatmap_link: `https://osu.ppy.sh/beatmapsets/${map.game.beatmap.beatmapset_id}#osu/${map.game.beatmap.id}`,
