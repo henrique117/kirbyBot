@@ -46,7 +46,7 @@ export default class APICalls {
             const scores: any[] = []
             map.game.scores.map((score: any) => {
                 scores.push({
-                    acc: Math.floor(score.accuracy * 100) / 100,
+                    acc: Math.floor(score.accuracy * 10000) / 100,
                     max_combo: score.max_combo,
                     mods: score.mods,
                     score: score.score,
