@@ -2,11 +2,15 @@ import Axios from 'axios'
 import getAuthToken from './apiAuthToken'
 import fs from 'fs/promises'
 import path from 'path'
+import * as Interfaces from '../interfaces/interfaces.export'
 
 export default class APICalls {
     private token: Promise<string>
+    private matches: Interfaces.MatchesInterfaces[]
+
     constructor() {
         this.token = getAuthToken()
+        this.matches = []
     }
 
     private async getAuth(): Promise<string> {
@@ -58,7 +62,6 @@ export default class APICalls {
                         n0: score.statistics.count_miss
                     }
                 })
-                console.log(Math.floor(score.accuracy * 10000) / 10000)
             })
             
             callback.scores.push({
@@ -75,7 +78,7 @@ export default class APICalls {
         return await this.postJSONFile(callback, response.match.name)
     }
 
-    public async postJSONFile(data: any, name: string): Promise<string> {
+    private async postJSONFile(data: any, name: string): Promise<string> {
         const fileName = name.replace(/[^a-zA-Z0-9 ]/g, '').replace(/ /g, '_')
         const filePath = path.resolve(__dirname, `../${fileName}.json`)
 
@@ -83,7 +86,81 @@ export default class APICalls {
             await fs.writeFile(filePath, JSON.stringify(data, null, 2))
             return filePath
         } catch (error) {
+            console.error(error)
             return 'Error ao salvar arquivo!'
+        }
+    }
+
+    private async postTXTFile(data: Interfaces.MatchesInterfaces[], name: string): Promise<string> {
+        const fileName = name
+        const filePath = path.resolve(__dirname, `../${fileName}.txt`)
+
+        const array: string[] = []
+
+        data.forEach((lobby: Interfaces.MatchesInterfaces) => {
+            array.push(`${lobby.name}: https://osu.ppy.sh/community/matches/${lobby.id}`)
+        })
+
+        const content = array.join('\n')
+
+        try {
+            await fs.writeFile(filePath, content, 'utf8')
+            return filePath
+        } catch (error){
+            console.error(error)
+            return 'Error ao salvar arquivo!'
+        }
+    }
+
+    public async getQueryMp(event: any, queryParams?: string, params?: string): Promise<any[]> {
+        const mpFound: Interfaces.MatchesInterfaces[] = []
+        let messageContent
+        try {
+            messageContent = await event.channel.send('Loading links...')
+            await this.recursiveSearch()
+        } finally {
+            if(queryParams) {
+                if((queryParams === '-name' || '-n') && params) {
+                    this.matches.forEach((lobby: Interfaces.MatchesInterfaces) => {
+                        if(lobby.name.toLowerCase().includes(params.toLowerCase())) mpFound.push(lobby)
+                    })
+                }
+            } else {
+                this.matches.forEach((lobby: Interfaces.MatchesInterfaces) => {
+                    mpFound.push(lobby)
+                })
+            }
+    
+            return [await this.postTXTFile(mpFound, `Matches&params=${queryParams ? `${queryParams}=${params}` : 'null'}`), messageContent]
+        }
+    }
+
+    private async recursiveSearch(cursor_string?: string): Promise<any> {
+        let counter = 0
+        try {
+            const response = await Axios.get(`https://osu.ppy.sh/api/v2/matches?limit=50&sort_id=id_desc${cursor_string ? `&cursor_string=${cursor_string}` : ''}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${await this.getAuth()}`
+                }
+            })
+
+            response.data.matches.forEach((lobby: Interfaces.MatchesInterfaces) => {
+                this.matches.push(lobby)
+                if(this.matches[this.matches.length - 1] == lobby) return
+            })
+
+            if(counter >= 100000) {
+                return
+            }
+
+            if(response.data.cursor_string) {
+                counter++
+                await this.recursiveSearch(response.data.cursor_string)
+            }
+
+        } catch(error) {
+            console.error(error)
         }
     }
 }
