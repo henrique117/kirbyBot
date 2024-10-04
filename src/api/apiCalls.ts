@@ -7,10 +7,12 @@ import * as Interfaces from '../interfaces/interfaces.export'
 export default class APICalls {
     private token: Promise<string>
     private matches: Interfaces.MatchesInterfaces[]
+    private counter: number
 
     constructor() {
         this.token = getAuthToken()
         this.matches = []
+        this.counter = 0
     }
 
     private async getAuth(): Promise<string> {
@@ -136,7 +138,6 @@ export default class APICalls {
     }
 
     private async recursiveSearch(cursor_string?: string): Promise<any> {
-        let counter = 0
         try {
             const response = await Axios.get(`https://osu.ppy.sh/api/v2/matches?limit=50&sort_id=id_desc${cursor_string ? `&cursor_string=${cursor_string}` : ''}`, {
                 headers: {
@@ -149,13 +150,14 @@ export default class APICalls {
                 this.matches.push(lobby)
                 if(this.matches[this.matches.length - 1] == lobby) return
             })
-
-            if(counter >= 100000) {
+            
+            if(this.counter >= 10000) {
+                this.counter = 0
                 return
             }
 
             if(response.data.cursor_string) {
-                counter++
+                this.counter++
                 await this.recursiveSearch(response.data.cursor_string)
             }
 
