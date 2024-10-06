@@ -47,51 +47,39 @@ client.on('messageCreate', async (message) => {
     }
 
     if(message.content.startsWith('%s') || message.content.startsWith('%searchmp')) {
+        let response
+        let messageContent
+        let createdFilePath
+
         try {
+            
+            const param_type: string = message.content.split(' ')[1]
+            const param_value: string = message.content.split(' ')[2]
 
-            let query: string | undefined
-            let params: string | undefined
-
-            if(message.content.split(' ')[1]) {
-
-                query = message.content.split(' ')[1]
-                if(message.content.split(' ')[2]) {
-                    params = message.content.split(' ')[2]
-                } else {
-                    message.reply('Write a valid param')
-                    return
-                }
-
-            } else {
-                query = undefined
-                params = undefined
+            if(!param_type || !param_value) {
+                message.reply('You must have to insert valid params!')
+                return
             }
 
-            let response
-            let createdFilePath
-            let messageContent
-
-            try {
-                response = await api.getQueryMp(message, query, params)
-                createdFilePath = response[0]
-                messageContent = response[1]
-            } finally {
-                messageContent?.edit(`Links ready! Sending the TXT file`)
-
-                if(fs.existsSync(createdFilePath)) {
-
-                    await message.channel.send({
-                        files: [createdFilePath]
-                    })
-    
-                    fs.unlinkSync(createdFilePath)
-                } else {
-                    message.reply('Erro ao gerar arquivo')
-                }
-            }
+            response = await api.getQueryMp(message, param_type, param_value)
+            createdFilePath = response[0]
+            messageContent = response[1]
             
         } catch {
-            message.reply('Ocorreu um erro')
+            message.reply('Something went wrong...')
+        } finally {      
+            messageContent?.edit('All things ready, sending the txt!')
+
+            if(fs.existsSync(createdFilePath)) {
+                await message.channel.send({
+                    files: [createdFilePath]
+                })
+
+                fs.unlinkSync(createdFilePath)
+            } else {
+                message.reply('Error on loading file')
+            }
+
         }
     }
 })

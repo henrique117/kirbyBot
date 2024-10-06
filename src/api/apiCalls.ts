@@ -3,16 +3,27 @@ import getAuthToken from './apiAuthToken'
 import fs from 'fs/promises'
 import path from 'path'
 import * as Interfaces from '../interfaces/interfaces.export'
+import { addMatch, getLastMatch, getQueryMatches, getAllShit } from '../database/crud'
 
 export default class APICalls {
     private token: Promise<string>
-    private matches: Interfaces.MatchesInterfaces[]
-    private counter: number
+    private lastMatchSaved!: number
 
     constructor() {
+        getLastMatch((err: any, rows: any) => {
+            if(err) {
+                console.error(err.message)
+            } else {
+                if(rows) {
+                    this.lastMatchSaved = rows[0].id
+                }
+            }
+        })
         this.token = getAuthToken()
-        this.matches = []
-        this.counter = 0
+    }
+
+    public getLastMatch(): number {
+        return this.lastMatchSaved
     }
 
     private async getAuth(): Promise<string> {
@@ -94,8 +105,7 @@ export default class APICalls {
     }
 
     private async postTXTFile(data: Interfaces.MatchesInterfaces[], name: string): Promise<string> {
-        const fileName = name
-        const filePath = path.resolve(__dirname, `../${fileName}.txt`)
+        const filePath = path.resolve(__dirname, `../${name}.txt`)
 
         const array: string[] = []
 
@@ -110,56 +120,62 @@ export default class APICalls {
             return filePath
         } catch (error){
             console.error(error)
-            return 'Error ao salvar arquivo!'
+            return 'Error on saving file!'
         }
     }
 
-    public async getQueryMp(event: any, queryParams?: string, params?: string): Promise<any[]> {
-        const mpFound: Interfaces.MatchesInterfaces[] = []
-        let messageContent
-        try {
-            messageContent = await event.channel.send('Loading links...')
-            await this.recursiveSearch()
-        } finally {
-            if(queryParams) {
-                if((queryParams === '-name' || '-n') && params) {
-                    this.matches.forEach((lobby: Interfaces.MatchesInterfaces) => {
-                        if(lobby.name.toLowerCase().includes(params.toLowerCase())) mpFound.push(lobby)
-                    })
-                }
-            } else {
-                this.matches.forEach((lobby: Interfaces.MatchesInterfaces) => {
-                    mpFound.push(lobby)
-                })
-            }
+    public async getQueryMp(event: any, queryParams: string, params: string): Promise<any> {
+        let messageContent: any
+        messageContent = await event.channel.send('Loading links...')
     
-            return [await this.postTXTFile(mpFound, `Matches&params=${queryParams ? `${queryParams}=${params}` : 'null'}`), messageContent]
+        try {
+            await this.recursiveSearch()
+    
+            const data: Interfaces.MatchesInterfaces[] = await getQueryMatches(queryParams, params)
+    
+            messageContent?.edit('Preparing the txt file')
+    
+            return [await this.postTXTFile(data, `matches_found_params=${params}`), messageContent]
+        } catch (err) {
+            console.error(err)
+            return 'Error fetching matches'
         }
     }
+    
 
     private async recursiveSearch(cursor_string?: string): Promise<any> {
         try {
-            const response = await Axios.get(`https://osu.ppy.sh/api/v2/matches?limit=50&sort_id=id_desc${cursor_string ? `&cursor_string=${cursor_string}` : ''}`, {
+            const response = await Axios.get(`https://osu.ppy.sh/api/v2/matches?limit=50&sort=id_desc${cursor_string ? `&cursor_string=${cursor_string}` : ''}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${await this.getAuth()}`
                 }
             })
 
-            response.data.matches.forEach((lobby: Interfaces.MatchesInterfaces) => {
-                this.matches.push(lobby)
-                if(this.matches[this.matches.length - 1] == lobby) return
-            })
-            
-            if(this.counter >= 10000) {
-                this.counter = 0
-                return
+            let shouldStop = false
+
+            for (const lobby of response.data.matches) {
+                if (lobby.id !== this.lastMatchSaved) {
+                    addMatch(lobby.id, lobby.start_time, lobby.name)
+                } else {
+                    shouldStop = true
+    
+                    await new Promise<void>((resolve, reject) => {
+                        getLastMatch((err: any, rows: any) => {
+                            if (err) {
+                                console.error(err.message)
+                                reject(err)
+                            } else {
+                                this.lastMatchSaved = rows[0].id
+                                resolve()
+                            }
+                        })
+                    })
+                    break
+                }
             }
 
-            if(response.data.cursor_string) {
-                this.counter++
-                await this.recursiveSearch(response.data.cursor_string)
-            }
+            if(!shouldStop) await this.recursiveSearch(response.data.cursor_string)
 
         } catch(error) {
             console.error(error)
