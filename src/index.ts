@@ -58,7 +58,11 @@ client.on('messageCreate', async (message) => {
         try {
             
             const param_type: string = message.content.split(' ')[1]
-            const param_value: string = message.content.split(' ')[2]
+            let param_value: string
+
+            if(message.content.split('"').length > 1) {
+                param_value = message.content.split('"')[1]
+            } else param_value = message.content.split(' ')[2]
 
             if(!param_type || !param_value) {
                 message.reply('You must have to insert valid params!')
