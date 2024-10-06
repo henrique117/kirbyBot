@@ -13,10 +13,14 @@ const client = new Client({
 const api = new APICalls()
 
 client.once('ready', async () => {
+    const guilds = client.guilds.cache.map(guild => guild.name)
     console.log(`Bot conectado como ${client.user?.tag}`)
+    console.log('Conectado nesses servidores:\n')
+    guilds.forEach(guild => console.log(guild))
 })
 
 client.on('messageCreate', async (message) => {
+
     if(message.content === '%h' || message.content === '%help') {
         await Functions.helpEmbedBuilder(message)
     }

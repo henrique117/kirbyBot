@@ -50,6 +50,7 @@ export default class APICalls {
         const response = await this.getMatchById(matchId)
         const mapsPlayed: any[] = []
 
+
         response.events.map((event: any) => {
             if(event.detail.type === 'other') mapsPlayed.push(event)
         })
