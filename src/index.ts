@@ -21,6 +21,10 @@ client.on('messageCreate', async (message) => {
         await Functions.helpEmbedBuilder(message)
     }
 
+    if(message.content === '%git' || message.content === '%github') {
+        await Functions.githubEmbedBuilder(message)
+    }
+
     if(message.content.startsWith('%es') || message.content.startsWith('%extractscores')) {
         try {
             const matchId = parseInt(message.content.split(' ')[1].split('/')[5])
