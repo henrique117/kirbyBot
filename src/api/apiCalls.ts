@@ -3,7 +3,7 @@ import getAuthToken from './apiAuthToken'
 import fs from 'fs/promises'
 import path from 'path'
 import * as Interfaces from '../interfaces/interfaces.export'
-import { addMatch, getLastMatch, getQueryMatches, getAllShit } from '../database/crud'
+import { addMatch, getLastMatch, getQueryMatches } from '../database/crud'
 
 export default class APICalls {
     private token: Promise<string>
@@ -20,6 +20,17 @@ export default class APICalls {
             }
         })
         this.token = getAuthToken()
+    }
+
+    public async getUserById(id: number): Promise<any> {
+        const response = await Axios.get(`https://osu.ppy.sh/api/v2/users/${id}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${await this.getAuth()}`
+            }
+        })
+
+        return response.data.username
     }
 
     public getLastMatch(): number {
@@ -69,6 +80,7 @@ export default class APICalls {
                     mods: score.mods,
                     score: score.score,
                     user_id: score.user_id,
+                    scoring_type: score.scoring_type,
                     statistics: {
                         n300: score.statistics.count_300,
                         n100: score.statistics.count_100,
@@ -81,6 +93,7 @@ export default class APICalls {
             callback.scores.push({
                 beatmap_id: map.game.beatmap.id,
                 beatmap_link: `https://osu.ppy.sh/beatmapsets/${map.game.beatmap.beatmapset_id}#osu/${map.game.beatmap.id}`,
+                scoring_type: map.game.scoring_type,
                 scores: scores
             })
         })
