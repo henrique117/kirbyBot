@@ -103,51 +103,77 @@ client.on('messageCreate', async (message) => {
 
         if(!member?.permissions.has('Administrator')) return message.reply('Only admins can use this command!!')
 
-        if(!checkPermissions) return message.reply('Add me permissions!!')
+        if(!checkPermissions()) return message.reply('Add me permissions!!')
 
-        const guildConfigs = {id: message.guild?.id, tc: true, capRole: '', plaRole: '', faRole: ''}
+        try {
+            interface LilThing {
+                id: string | undefined
+                tc: boolean
+                capRole?: string
+                plaRole?: string
+                faRole?: string
+            }
 
-        let captainRole = guildRoles?.cache.find(role => role.name.toLowerCase() === 'capitao')
-        let playerRole = guildRoles?.cache.find(role => role.name.toLowerCase() === 'player')
-        let freeRole = guildRoles?.cache.find(role => role.name.toLowerCase() === 'free agent')
+            const guildConfigs: LilThing = {id: message.guild?.id, tc: true}
 
-        if(!captainRole) {
-            guildRoles?.create({
-                name: 'Capitao',
-                color: 'Fuchsia',
-                permissions: ['SendMessages', 'ViewChannel']
-            }).then(role => {
-                guildConfigs.capRole = role.id
-            }).catch(err => console.error(err))
-        } else {
-            guildConfigs.capRole = captainRole.id
+            let captainRole = guildRoles?.cache.find(role => role.name.toLowerCase() === 'capitao')
+            let playerRole = guildRoles?.cache.find(role => role.name.toLowerCase() === 'player')
+            let freeRole = guildRoles?.cache.find(role => role.name.toLowerCase() === 'free agent')
+
+            if (!captainRole) {
+                try {
+                    const role = await guildRoles?.create({
+                        name: 'Capitao',
+                        color: 'Fuchsia',
+                        permissions: ['SendMessages', 'ViewChannel']
+                    });
+                    guildConfigs.capRole = role?.id
+                } catch (err) {
+                    console.error(err);
+                    return message.reply('Não consegui criar o cargo de Capitão.')
+                }
+            } else {
+                guildConfigs.capRole = captainRole.id;
+            }            
+
+            if (!playerRole) {
+                try {
+                    const role = await guildRoles?.create({
+                        name: 'Capitao',
+                        color: 'Fuchsia',
+                        permissions: ['SendMessages', 'ViewChannel']
+                    });
+                    guildConfigs.capRole = role?.id
+                } catch (err) {
+                    console.error(err);
+                    return message.reply('Não consegui criar o cargo de Capitão.')
+                }
+            } else {
+                guildConfigs.plaRole = playerRole.id;
+            }
+
+            if (!freeRole) {
+                try {
+                    const role = await guildRoles?.create({
+                        name: 'Free Agent',
+                        color: 'LightGrey',
+                        permissions: ['SendMessages', 'ViewChannel']
+                    });
+                    guildConfigs.faRole = role?.id
+                } catch (err) {
+                    console.error(err);
+                    return message.reply('Não consegui criar o cargo de Capitão.')
+                }
+            } else {
+                guildConfigs.faRole = freeRole.id
+            }
+
+            guildVariables.setGuildConfig(guildConfigs.id, guildConfigs.tc, guildConfigs.plaRole, guildConfigs.capRole, guildConfigs.faRole)
+        } catch {
+            console.log('aaaaaaaaaa')
+        } finally {
+            message.react('✅')
         }
-
-        if(!playerRole) {
-            guildRoles?.create({
-                name: 'Player',
-                color: 'Aqua',
-                permissions: ['SendMessages', 'ViewChannel']
-            }).then(role => {
-                guildConfigs.plaRole = role.id
-            }).catch(err => console.error(err))
-        } else {
-            guildConfigs.plaRole = playerRole.id
-        }
-
-        if(!freeRole) {
-            guildRoles?.create({
-                name: 'Free Agent',
-                color: 'LightGrey',
-                permissions: ['SendMessages', 'ViewChannel']
-            }).then(role => {
-                guildConfigs.faRole = role.id
-            }).catch(err => console.error(err))
-        } else {
-            guildConfigs.faRole = freeRole.id
-        }
-
-        guildVariables.setGuildConfig(guildConfigs.id, guildConfigs.tc, guildConfigs.plaRole, guildConfigs.capRole, guildConfigs.faRole)
     }
 
     if (message.content === '%feio') {
@@ -230,10 +256,19 @@ client.on('messageCreate', async (message) => {
             const userReaction = collectedReactions?.first()
     
             if (userReaction?.emoji.name === '❌') {
+
                 await botMessages.edit('Ótimo, vou te dar o cargo de Free Agent para poder procurar algum time! Caso já tenha time combinado, peça para o seu capitão registrar o time usando o mesmo comando!')
-                let hasTheRole = guildUser?.roles.cache.find(role => role.name === 'Free Agent')
+                let hasTheRole = guildUser?.roles.cache.find(role => role.name.toLowerCase() === 'free agent')
                 if(hasTheRole) return
+                const response = guildVariables.getGuildConfig(message.guild?.id)
+                const faRole = response?.fa_role_id
                 
+                try {
+                    if(faRole) guildUser?.roles.add(faRole)
+                } catch(error) {
+                    console.error('bbbbbbbbbbb')
+                }
+
             } else {
                 await botMessages.edit('Ótimo, preciso que mande o seu time com o seguinte formato:\n\nNome do time\n@teamate1 - ID do osu teamate1\n@teamate2 - ID do osu teamate2\n...')
             }
