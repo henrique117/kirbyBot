@@ -3,7 +3,7 @@ import * as Interfaces from '../interfaces/interfaces.export'
 
 export function addMatch(id: number, start_time: string, name: string) {
     const sql = 'INSERT INTO mp_links (id, start_time, name) VALUES (?, ?, ?)'
-    db.run(sql, [id, start_time, name], (err) => {
+    db.run(sql, [id, start_time, name], (err: any) => {
         if(err) {
             console.error(err.message)
         }

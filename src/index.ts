@@ -4,6 +4,7 @@ import APICalls from './api/apiCalls'
 import fs from 'fs'
 import * as Functions from './functions/functions.export'
 import { ManageGuildVariables } from './classes/classes.export'
+import path from 'path'
 
 dotenv.config()
 
@@ -248,7 +249,7 @@ client.on('messageCreate', async (message) => {
             await botMessages?.react('✅')
             await botMessages?.react('❌')
     
-            const reactionFilter = (reaction: any, user: any) => {
+            const reactionFilter = (_: any, user: any) => {
                 return !user.bot && user.id === message.author.id
             }
     
@@ -270,16 +271,89 @@ client.on('messageCreate', async (message) => {
                 }
 
             } else {
-                await botMessages.edit('Ótimo, preciso que mande o seu time com o seguinte formato:\n\nNome do time\n@teamate1 - ID do osu teamate1\n@teamate2 - ID do osu teamate2\n...')
+                await botMessages.edit({content: 'Ótimo, digite o username do discord do seu primeiro teamate:', files: [{
+                    attachment: path.resolve(__dirname, './assets/username.png'),
+                }]})
+
+                const teamates = await Functions.collectPlayers(newChannel, message)
+
+                if(!teamates) throw new Error
+
+                let player1, player2, teamate1Username, teamate2Username
+
+                try {
+                    
+                    player1 = message.guild?.members.cache.find(member => {
+                        member.user.tag === teamates[0]
+                    })
+
+                    if(teamates[2]) {
+                        player2 = message.guild?.members.cache.find(member => {
+                            member.user.tag === teamates[2]
+                        })
+                    }
+
+                    if(!player1 || (!player2 && teamates[2])) return await newChannel.send('Não consegui achar o seu teamate no servidor! Peça para ele entrar primeiro antes de fazer o cadastro!!')
+
+                    teamate1Username = await api.getUserById(parseInt(player1.id))
+                    player1.setNickname(`${teamate1Username}`)
+
+                    if(teamates[2] && player2) {
+                        teamate2Username = await api.getUserById(parseInt(player2.id))
+                        player2.setNickname(`${teamate2Username}`)
+                    }
+
+                    botMessages = await newChannel.send('Trocando o nome dos teamates...')
+                } catch {
+                    await botMessages.edit('Algo deu errado...')
+                } finally {
+                    await botMessages.edit('Ok, tudo certo, por último, qual é o nome do seu time?')
+                }
+
+                const collectorTeamFilter = (m: any) => {
+                    return m.author.id === message.author.id
+                }
+
+                let teamName
+
+                try {
+                    const collected = await newChannel.awaitMessages({ filter: collectorTeamFilter, time: 30_000, errors: ['time']})
+                    teamName = collected.first()
+
+                } catch {
+                    await botMessages?.edit('Você demorou muito para responder! Tente refazer o cadastro novamente!')
+                    setTimeout(() => {
+                        newChannel.delete()
+                    }, 5000)
+                } finally {
+                    try {
+                        if(teamName) {
+                            const role = await message.guild?.roles.create({
+                                name: teamName.content,
+                                color: 'LightGrey',
+                                permissions: ['SendMessages', 'ViewChannel']
+                            })
+
+                            if(role && player1 && guildUser) {
+                                guildUser.roles.add(role.id, guildVariables.getGuildConfig(message.guild?.id)?.player_role_id)
+                                player1.roles.add(role.id, guildVariables.getGuildConfig(message.guild?.id)?.player_role_id)
+                                if(teamates[2] && player2) player2.roles.add(role.id, guildVariables.getGuildConfig(message.guild?.id)?.player_role_id)
+                            }
+                        }
+                        
+                    } catch (err) {
+                        console.error(err);
+                        return message.reply('Não consegui criar o cargo!!')
+                    }
+                }
             }
-    
-            await botMessages.reactions.removeAll()
-    
+        } catch {
+            await botMessages?.edit('Você demorou muito para responder! Tente refazer o cadastro novamente!')
             setTimeout(() => {
                 newChannel.delete()
             }, 5000)
-        } catch {
-            await botMessages?.edit('Você demorou muito para responder! Tente refazer o cadastro novamente!')
+        } finally {
+            await newChannel.send('Tudo pronto! Muito obrigado por ter se cadastrado! Bem vindo a TB5!!!')
             setTimeout(() => {
                 newChannel.delete()
             }, 5000)
