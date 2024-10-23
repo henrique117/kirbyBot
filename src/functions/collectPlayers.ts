@@ -45,6 +45,8 @@ export default async function helpEmbedBuilder(channel: TextChannel, event: any)
         const collected = await botMessage.awaitReactions({ filter: reactionFilter, time: 30_000, max: 1, errors: ['time'] })
         const userReaction = collected.first()
 
+        botMessage.reactions.removeAll()
+
         if (userReaction?.emoji.name === '✅') {
             await botMessage.edit('Tudo certo, vamos repetir o processo, digite o username do seu segundo teamate:')
 
@@ -67,7 +69,7 @@ export default async function helpEmbedBuilder(channel: TextChannel, event: any)
             } catch {
                 return false
             }
-        }
+        } else await botMessage.delete()
 
     } catch {
         return false

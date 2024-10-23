@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Message, PermissionsBitField, TextChannel } from 'discord.js'
+import { ChannelType, Client, GatewayIntentBits, Message, PermissionsBitField, TextChannel } from 'discord.js'
 import dotenv from 'dotenv'
 import APICalls from './api/apiCalls'
 import fs from 'fs'
@@ -127,14 +127,14 @@ client.on('messageCreate', async (message) => {
                         name: 'Capitao',
                         color: 'Fuchsia',
                         permissions: ['SendMessages', 'ViewChannel']
-                    });
+                    })
                     guildConfigs.capRole = role?.id
                 } catch (err) {
-                    console.error(err);
+                    console.error(err)
                     return message.reply('Não consegui criar o cargo de Capitão.')
                 }
             } else {
-                guildConfigs.capRole = captainRole.id;
+                guildConfigs.capRole = captainRole.id
             }            
 
             if (!playerRole) {
@@ -143,14 +143,14 @@ client.on('messageCreate', async (message) => {
                         name: 'Capitao',
                         color: 'Fuchsia',
                         permissions: ['SendMessages', 'ViewChannel']
-                    });
+                    })
                     guildConfigs.capRole = role?.id
                 } catch (err) {
-                    console.error(err);
+                    console.error(err)
                     return message.reply('Não consegui criar o cargo de Capitão.')
                 }
             } else {
-                guildConfigs.plaRole = playerRole.id;
+                guildConfigs.plaRole = playerRole.id
             }
 
             if (!freeRole) {
@@ -159,10 +159,10 @@ client.on('messageCreate', async (message) => {
                         name: 'Free Agent',
                         color: 'LightGrey',
                         permissions: ['SendMessages', 'ViewChannel']
-                    });
+                    })
                     guildConfigs.faRole = role?.id
                 } catch (err) {
-                    console.error(err);
+                    console.error(err)
                     return message.reply('Não consegui criar o cargo de Capitão.')
                 }
             } else {
@@ -177,16 +177,19 @@ client.on('messageCreate', async (message) => {
         }
     }
 
-    if (message.content === '%feio') {
+    if (message.content === '%tb5' && message.guild?.id === '1297726959014383676') {
 
         if (!checkPermissions()) return message.reply('Add me permissions!!')
-        const checkTournmentConfig = guildVariables.getGuildConfig(message.guild?.id) 
-        if(!checkTournmentConfig?.tournment_configs) return message.reply('Turn on the tournment configs using <%tc on> or <%tournmentconfigs on>')
-
-        const channelName = `${message.author.globalName}`
+        
+        const checkTournmentConfig = guildVariables.getGuildConfig(message.guild?.id)
+        if (!checkTournmentConfig?.tournment_configs) {
+            return message.reply('Turn on the tournment configs using <%tc on> or <%tournmentconfigs on>')
+        }
+    
+        const channelName = `${message.author.username}`
         let newChannel: TextChannel | undefined
     
-        const guildUser = await message.guild?.members.cache.get(message.author.id)
+        const guildUser = await message.guild?.members.fetch(message.author.id)
     
         message.react('✅')
     
@@ -195,18 +198,18 @@ client.on('messageCreate', async (message) => {
         try {
             newChannel = await message.guild?.channels.create({
                 name: channelName,
-                type: 0,
+                type: ChannelType.GuildText,
                 permissionOverwrites: [
                     {
-                        id: message.guild.roles.everyone,
-                        deny: [PermissionsBitField.Flags.ViewChannel]
+                        id: message.guild.roles.everyone.id,
+                        deny: [PermissionsBitField.Flags.ViewChannel],
                     },
                     {
                         id: message.author.id,
-                        allow: [PermissionsBitField.Flags.ViewChannel]
+                        allow: [PermissionsBitField.Flags.ViewChannel],
                     }
                 ],
-                reason: `Registro de ${message.author.globalName}`
+                reason: `Registro de ${message.author.globalName}`,
             })
         } catch (error) {
             console.error(error)
@@ -220,7 +223,7 @@ client.on('messageCreate', async (message) => {
     
         await newChannel.send(`<@${message.author.id}> Manda o ID do seu perfil do Osu! aqui:`)
     
-        const collectorFilter = (m: any) => {
+        const collectorFilter = (m: Message) => {
             return m.author.id === message.author.id && /^[0-9]+$/.test(m.content)
         }
     
@@ -257,113 +260,138 @@ client.on('messageCreate', async (message) => {
             const userReaction = collectedReactions?.first()
     
             if (userReaction?.emoji.name === '❌') {
-
                 await botMessages.edit('Ótimo, vou te dar o cargo de Free Agent para poder procurar algum time! Caso já tenha time combinado, peça para o seu capitão registrar o time usando o mesmo comando!')
-                let hasTheRole = guildUser?.roles.cache.find(role => role.name.toLowerCase() === 'free agent')
-                if(hasTheRole) return
+    
                 const response = guildVariables.getGuildConfig(message.guild?.id)
                 const faRole = response?.fa_role_id
-                
+    
                 try {
-                    if(faRole) guildUser?.roles.add(faRole)
-                } catch(error) {
-                    console.error('bbbbbbbbbbb')
+                    if (faRole && guildUser) guildUser.roles.add(faRole)
+                } catch (error) {
+                    console.error('Erro ao adicionar o cargo de Free Agent:', error)
                 }
-
+    
             } else {
-                await botMessages.edit({content: 'Ótimo, digite o username do discord do seu primeiro teamate:', files: [{
-                    attachment: path.resolve(__dirname, './assets/username.png'),
-                }]})
-
+                await botMessages.edit({
+                    content: 'Ótimo, digite o username do discord do seu primeiro teamate:',
+                    files: [{
+                        attachment: path.resolve(__dirname, './assets/username.png'),
+                    }],
+                })
+    
+                await botMessages.reactions.removeAll()
+    
                 const teamates = await Functions.collectPlayers(newChannel, message)
-
-                if(!teamates) throw new Error
-
+    
+                if (!teamates) throw new Error('Teamates não encontrados')
+    
                 let player1, player2, teamate1Username, teamate2Username
-
+    
                 try {
                     
-                    player1 = message.guild?.members.cache.find(member => {
-                        member.user.tag === teamates[0]
-                    })
-
-                    if(teamates[2]) {
-                        player2 = message.guild?.members.cache.find(member => {
-                            member.user.tag === teamates[2]
-                        })
+                    player1 = await message.guild?.members.fetch({ query: teamates[0], limit: 1 }).then(members => members.first())
+    
+                    if (teamates[2]) {
+                        player2 = await message.guild?.members.fetch({ query: teamates[2], limit: 1 }).then(members => members.first())
                     }
-
-                    if(!player1 || (!player2 && teamates[2])) return await newChannel.send('Não consegui achar o seu teamate no servidor! Peça para ele entrar primeiro antes de fazer o cadastro!!')
-
-                    teamate1Username = await api.getUserById(parseInt(player1.id))
-                    player1.setNickname(`${teamate1Username}`)
-
-                    if(teamates[2] && player2) {
-                        teamate2Username = await api.getUserById(parseInt(player2.id))
+    
+                    botMessages = await newChannel.send('Trocando o nome dos teamates...')
+    
+                    if (player1) {
+                        teamate1Username = await api.getUserById(parseInt(teamates[1]))
+                        player1.setNickname(`${teamate1Username}`)
+                    }
+    
+                    if (teamates[2] && player2) {
+                        teamate2Username = await api.getUserById(parseInt(teamates[1]))
                         player2.setNickname(`${teamate2Username}`)
                     }
-
-                    botMessages = await newChannel.send('Trocando o nome dos teamates...')
-                } catch {
+    
+                } catch (error) {
+                    console.error('Erro ao trocar nomes dos teamates:', error)
                     await botMessages.edit('Algo deu errado...')
                 } finally {
                     await botMessages.edit('Ok, tudo certo, por último, qual é o nome do seu time?')
                 }
-
-                const collectorTeamFilter = (m: any) => {
+    
+                const collectorTeamFilter = (m: Message) => {
                     return m.author.id === message.author.id
                 }
-
-                let teamName
-
+    
+                let teamName: any
+    
                 try {
-                    const collected = await newChannel.awaitMessages({ filter: collectorTeamFilter, time: 30_000, errors: ['time']})
+                    const collected = await newChannel.awaitMessages({ filter: collectorTeamFilter, time: 30_000, errors: ['time'], max: 1 })
                     teamName = collected.first()
-
-                } catch {
-                    await botMessages?.edit('Você demorou muito para responder! Tente refazer o cadastro novamente!')
-                    setTimeout(() => {
-                        newChannel.delete()
-                    }, 5000)
+                } catch (error) {
+                    console.error('Erro ao coletar o nome do time:', error)
                 } finally {
                     try {
-                        if(teamName) {
+
+                        let findRole = message.guild?.roles.cache.find(role => {
+                            return role.name === teamName.content
+                        })
+
+                        if (teamName && !findRole) {
                             const role = await message.guild?.roles.create({
                                 name: teamName.content,
                                 color: 'LightGrey',
-                                permissions: ['SendMessages', 'ViewChannel']
+                                permissions: ['SendMessages', 'ViewChannel'],
                             })
-
-                            if(role && player1 && guildUser) {
-                                guildUser.roles.add(role.id, guildVariables.getGuildConfig(message.guild?.id)?.player_role_id)
-                                player1.roles.add(role.id, guildVariables.getGuildConfig(message.guild?.id)?.player_role_id)
-                                if(teamates[2] && player2) player2.roles.add(role.id, guildVariables.getGuildConfig(message.guild?.id)?.player_role_id)
+    
+                            if (role && player1 && guildUser) {
+                                guildUser.roles.set([])
+                                player1.roles.set([])
+                                guildUser.roles.add(role.id)
+                                player1.roles.add(role.id)
+                                if (teamates[2] && player2) {
+                                    player2.roles.set([])
+                                    player2.roles.add(role.id)
+                                }
                             }
+
+                            const guildIDRoles = guildVariables.getGuildConfig(message.guild?.id)
+                            const playerRole = guildIDRoles?.player_role_id
+                            const captainRole = guildIDRoles?.captain_role_id
+                            
+                            if(guildIDRoles && playerRole && captainRole && guildUser && player1) {
+                                guildUser.roles.add(captainRole)
+                                guildUser.roles.add(playerRole)
+                                guildUser.roles.add('1297726959077294090')
+                                player1.roles.add(playerRole)
+                                player1.roles.add('1297726959077294090')
+                                if (teamates[2] && player2) {
+                                    player2.roles.add(playerRole)
+                                    player2.roles.add('1297726959077294090')
+                                }
+                            }
+
+                            // gambiarrazinha
+
+                            return await newChannel.send('Tudo pronto! Muito obrigado por ter se cadastrado! Bem vindo a TB5!!!')
                         }
-                        
+
+                        if(findRole) return await newChannel.send('Já existe um time com esse nome! Tente novamente fazer o cadastro!')
+
                     } catch (err) {
-                        console.error(err);
-                        return message.reply('Não consegui criar o cargo!!')
+                        console.error(err)
                     }
                 }
             }
-        } catch {
+        } catch (error) {
             await botMessages?.edit('Você demorou muito para responder! Tente refazer o cadastro novamente!')
-            setTimeout(() => {
-                newChannel.delete()
+            setTimeout(async () => {
+                await newChannel.delete()
             }, 5000)
         } finally {
-            await newChannel.send('Tudo pronto! Muito obrigado por ter se cadastrado! Bem vindo a TB5!!!')
-            setTimeout(() => {
-                newChannel.delete()
+            setTimeout(async () => {
+                await newChannel.delete()
             }, 5000)
         }
     }
-    
 
     if(message.content.startsWith('%s') || message.content.startsWith('%searchmp')) {
-        message.reply("This command is disabled for now... Try again later!")
-        /* let response
+        let response
         let messageContent
         let createdFilePath
 
@@ -400,7 +428,7 @@ client.on('messageCreate', async (message) => {
                 message.reply('Error on loading file')
             }
 
-        } */
+        }
     }
 })
 
