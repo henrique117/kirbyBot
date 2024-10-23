@@ -74,6 +74,11 @@ client.on('messageCreate', async (message) => {
     }
 
     if(message.content.startsWith('%es') || message.content.startsWith('%extractscores')) {
+        
+        const member = message.guild?.members.cache.get(message.author.id)
+
+        if(!member?.permissions.has('Administrator') || message.author.id !== '520994132458471438') return message.reply('Only admins can use this command!!')
+
         try {
             const matchId = parseInt(message.content.split(' ')[1].split('/')[5])
             let warmups: number | undefined
@@ -391,6 +396,11 @@ client.on('messageCreate', async (message) => {
     }
 
     if(message.content.startsWith('%s') || message.content.startsWith('%searchmp')) {
+
+        const member = message.guild?.members.cache.get(message.author.id)
+
+        if(!member?.permissions.has('Administrator') || message.author.id !== '520994132458471438') return message.reply('Only admins can use this command!!')
+
         let response
         let messageContent
         let createdFilePath
