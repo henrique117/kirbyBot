@@ -33,12 +33,36 @@ const fs_1 = __importDefault(require("fs"));
 const Functions = __importStar(require("./functions/functions.export"));
 const classes_export_1 = require("./classes/classes.export");
 const path_1 = __importDefault(require("path"));
+const express_1 = __importDefault(require("express"));
+const ngrock = require('ngrok');
 dotenv_1.default.config();
+const app = (0, express_1.default)();
+const port = 3000;
+var ngUrl;
 const client = new discord_js_1.Client({
     intents: [discord_js_1.GatewayIntentBits.Guilds, discord_js_1.GatewayIntentBits.GuildMessages, discord_js_1.GatewayIntentBits.MessageContent, discord_js_1.GatewayIntentBits.GuildMembers, discord_js_1.GatewayIntentBits.GuildMessageReactions]
 });
 const api = new apiCalls_1.default();
 const guildVariables = new classes_export_1.ManageGuildVariables();
+app.get('/kirby/auth', async (req, res) => {
+    res.redirect('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    const authorizationCode = req.query.code;
+    const state = req.query.state;
+    let user;
+    let guild;
+    if (state) {
+        user = state.split(',')[0];
+        guild = state.split(',')[1];
+    }
+    const osuUsername = await api.getUserFromAuth(authorizationCode);
+    const targetGuild = client.guilds.cache.get(guild);
+    if (!targetGuild)
+        return console.log('Server não encontrado');
+    const targetUser = targetGuild.members.fetch(user);
+    if (!targetUser)
+        return console.log('User não encontrado no server');
+    await (await targetUser).setNickname(osuUsername);
+});
 process.on('SIGINT', () => {
     console.log('\nBot está sendo desligado...');
     try {
@@ -80,6 +104,14 @@ client.once('ready', async () => {
     finally {
         console.log('Variáveis carregadas!');
     }
+    app.listen(port, async () => {
+        console.log(`\nServidor Express rodando na porta ${port}`);
+        ngUrl = await ngrock.connect({
+            addr: port,
+            authtoken: process.env.NGROK_AUTH_TOKEN
+        });
+        console.log('\nServidor Ngrok rodando no momento: ', ngUrl);
+    });
 });
 client.on('messageCreate', async (message) => {
     function checkPermissions() {
@@ -87,6 +119,9 @@ client.on('messageCreate', async (message) => {
         if (myBot?.permissions.has('Administrator'))
             return true;
         return false;
+    }
+    if (message.content === '%auth') {
+        message.reply(`Clique [aqui](https://osu.ppy.sh/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&scope=public+identify&state=${message.author.id},${message.guild?.id}) para autenticar seu perfil!`);
     }
     if (message.content === '%inv' && message.channel.id === '1299009626427359232') {
         let botMessage;

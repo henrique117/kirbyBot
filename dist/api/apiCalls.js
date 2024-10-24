@@ -211,5 +211,21 @@ class APICalls {
             console.log('erro');
         }
     }
+    async getUserFromAuth(authCode) {
+        const authToken = await (0, apiAuthToken_1.default)(authCode);
+        try {
+            const response = await axios_1.default.get('https://osu.ppy.sh/api/v2/me/osu', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${authToken}`
+                }
+            });
+            const userData = response.data;
+            return userData.username;
+        }
+        catch (err) {
+            console.log('aff');
+        }
+    }
 }
 exports.default = APICalls;

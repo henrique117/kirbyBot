@@ -238,4 +238,23 @@ export default class APICalls {
             console.log('erro')
         }
     }
+
+    public async getUserFromAuth(authCode: string): Promise<any> {
+        const authToken = await getAuthToken(authCode)
+
+        try {
+            const response = await Axios.get('https://osu.ppy.sh/api/v2/me/osu', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${authToken}`
+                }
+            })
+
+            const userData = response.data
+
+            return userData.username
+        } catch(err) {
+            console.log('aff')
+        }
+    }
 }

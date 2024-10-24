@@ -5,8 +5,15 @@ import fs from 'fs'
 import * as Functions from './functions/functions.export'
 import { ManageGuildVariables } from './classes/classes.export'
 import path from 'path'
+import express from 'express'
 
+const ngrock = require('ngrok')
 dotenv.config()
+
+const app = express()
+const port = 3000
+
+var ngUrl: any
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessageReactions]
@@ -14,6 +21,32 @@ const client = new Client({
 
 const api = new APICalls()
 const guildVariables = new ManageGuildVariables()
+
+app.get('/kirby/auth', async (req, res) => {
+    res.redirect('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+    const authorizationCode: any = req.query.code
+    const state: any = req.query.state
+
+    let user
+    let guild
+
+    if(state) {
+        user = state.split(',')[0]
+        guild = state.split(',')[1]
+    }
+
+    const osuUsername = await api.getUserFromAuth(authorizationCode)
+
+    const targetGuild = client.guilds.cache.get(guild)
+
+    if(!targetGuild) return console.log('Server não encontrado')
+
+    const targetUser = targetGuild.members.fetch(user)
+
+    if(!targetUser) return console.log('User não encontrado no server')
+
+    await (await targetUser).setNickname(osuUsername)
+})
 
 process.on('SIGINT', () => {
     console.log('\nBot está sendo desligado...')
@@ -55,6 +88,17 @@ client.once('ready', async () => {
     } finally {
         console.log('Variáveis carregadas!')
     }
+
+    app.listen(port, async () => {
+        console.log(`\nServidor Express rodando na porta ${port}`)
+
+        ngUrl = await ngrock.connect({
+            addr: port,
+            authtoken: process.env.NGROK_AUTH_TOKEN
+        })
+
+        console.log('\nServidor Ngrok rodando no momento: ', ngUrl)
+    })
 })
 
 client.on('messageCreate', async (message) => {
@@ -63,6 +107,10 @@ client.on('messageCreate', async (message) => {
         const myBot = message.guild?.members.cache.get('1290083348827471872')
         if(myBot?.permissions.has('Administrator')) return true
         return false
+    }
+
+    if(message.content === '%auth') {
+        message.reply(`Clique [aqui](https://osu.ppy.sh/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&scope=public+identify&state=${message.author.id},${message.guild?.id}) para autenticar seu perfil!`)
     }
 
     if(message.content === '%inv' && message.channel.id === '1299009626427359232') {
