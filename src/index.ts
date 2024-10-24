@@ -11,7 +11,7 @@ const ngrock = require('ngrok')
 dotenv.config()
 
 const app = express()
-const port = 4040
+const port = 80
 
 var ngUrl: any
 
