@@ -195,4 +195,47 @@ export default class APICalls {
             console.error(error)
         }
     }
+
+    public async get5digitsOnline(): Promise<any> {
+
+        try {
+            let page = 1
+            let isFinished = false
+            const players: any[] = []
+
+            while(!isFinished) {
+                try {
+                    const response = await Axios.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance`, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${await this.getAuth()}`
+                        },
+                        params: {
+                            country: 'BR',
+                            page: page
+                        }
+                    })
+
+                    const data = response.data.ranking
+
+                    data.forEach((player: any) => {
+                        if(player.global_rank < 100000 && player.global_rank > 9999 && player.user.is_online == true) players.push(`${player.user.username}: https://osu.ppy.sh/users/${player.user.id}`)
+                    })
+
+                    if (data[data.length - 1].global_rank > 99999) {
+                        isFinished = true
+                    } else {
+                        page++
+                    }
+
+                } catch {
+                    console.log('Houve um erro ao achar os players')
+                }
+            }
+
+            return players
+        } catch {
+            console.log('erro')
+        }
+    }
 }

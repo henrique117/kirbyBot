@@ -65,6 +65,27 @@ client.on('messageCreate', async (message) => {
         return false
     }
 
+    if(message.content === '%inv' && message.channel.id === '1299009626427359232') {
+        let botMessage
+        let players
+        try {
+            botMessage = await message.reply('Procurando os 5 digitos safados online...')
+
+            players = await api.get5digitsOnline()
+        } catch {
+            await botMessage?.edit('Houve um erro ao procurar os players')
+        } finally {
+            const playersString = players.join('\n')
+            fs.writeFileSync(path.resolve(__dirname, './players_online.txt'), playersString)
+            if(fs.existsSync(path.resolve(__dirname, './players_online.txt'))) {
+                await botMessage?.edit({ content: `Tudo pronto, players achados online:`, files: [path.resolve(__dirname, './players_online.txt')] })
+                fs.unlinkSync(path.resolve(__dirname, './players_online.txt'))
+            } else {
+                await botMessage?.edit('Houve um erro ao gerar arquivo')
+            }
+        }
+    }
+
     if(message.content === '%h' || message.content === '%help') {
         await Functions.helpEmbedBuilder(message)
     }
@@ -396,6 +417,8 @@ client.on('messageCreate', async (message) => {
     }
 
     if(message.content.startsWith('%s') || message.content.startsWith('%searchmp')) {
+
+        return message.reply('The bot is on dev mode and this command is current offline!! Sorry')
 
         const member = message.guild?.members.cache.get(message.author.id)
 
