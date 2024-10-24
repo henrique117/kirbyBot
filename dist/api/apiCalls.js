@@ -172,5 +172,44 @@ class APICalls {
             console.error(error);
         }
     }
+    async get5digitsOnline() {
+        try {
+            let page = 1;
+            let isFinished = false;
+            const players = [];
+            while (!isFinished) {
+                try {
+                    const response = await axios_1.default.get(`https://osu.ppy.sh/api/v2/rankings/osu/performance`, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${await this.getAuth()}`
+                        },
+                        params: {
+                            country: 'BR',
+                            page: page
+                        }
+                    });
+                    const data = response.data.ranking;
+                    data.forEach((player) => {
+                        if (player.global_rank < 100000 && player.global_rank > 9999 && player.user.is_online == true)
+                            players.push(`${player.user.username}: https://osu.ppy.sh/users/${player.user.id}`);
+                    });
+                    if (data[data.length - 1].global_rank > 99999) {
+                        isFinished = true;
+                    }
+                    else {
+                        page++;
+                    }
+                }
+                catch {
+                    console.log('Houve um erro ao achar os players');
+                }
+            }
+            return players;
+        }
+        catch {
+            console.log('erro');
+        }
+    }
 }
 exports.default = APICalls;

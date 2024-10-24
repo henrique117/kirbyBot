@@ -88,6 +88,28 @@ client.on('messageCreate', async (message) => {
             return true;
         return false;
     }
+    if (message.content === '%inv' && message.channel.id === '1299009626427359232') {
+        let botMessage;
+        let players;
+        try {
+            botMessage = await message.reply('Procurando os 5 digitos safados online...');
+            players = await api.get5digitsOnline();
+        }
+        catch {
+            await botMessage?.edit('Houve um erro ao procurar os players');
+        }
+        finally {
+            const playersString = players.join('\n');
+            fs_1.default.writeFileSync(path_1.default.resolve(__dirname, './players_online.txt'), playersString);
+            if (fs_1.default.existsSync(path_1.default.resolve(__dirname, './players_online.txt'))) {
+                await botMessage?.edit({ content: `Tudo pronto, players achados online:`, files: [path_1.default.resolve(__dirname, './players_online.txt')] });
+                fs_1.default.unlinkSync(path_1.default.resolve(__dirname, './players_online.txt'));
+            }
+            else {
+                await botMessage?.edit('Houve um erro ao gerar arquivo');
+            }
+        }
+    }
     if (message.content === '%h' || message.content === '%help') {
         await Functions.helpEmbedBuilder(message);
     }
@@ -378,6 +400,7 @@ client.on('messageCreate', async (message) => {
         }
     }
     if (message.content.startsWith('%s') || message.content.startsWith('%searchmp')) {
+        // return message.reply('The bot is on dev mode and this command is current offline!! Sorry')
         const member = message.guild?.members.cache.get(message.author.id);
         if (!member?.permissions.has('Administrator') || message.author.id !== '520994132458471438')
             return message.reply('Only admins can use this command!!');

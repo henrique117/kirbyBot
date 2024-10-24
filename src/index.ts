@@ -418,7 +418,7 @@ client.on('messageCreate', async (message) => {
 
     if(message.content.startsWith('%s') || message.content.startsWith('%searchmp')) {
 
-        return message.reply('The bot is on dev mode and this command is current offline!! Sorry')
+        // return message.reply('The bot is on dev mode and this command is current offline!! Sorry')
 
         const member = message.guild?.members.cache.get(message.author.id)
 
