@@ -37,7 +37,7 @@ const express_1 = __importDefault(require("express"));
 const ngrock = require('ngrok');
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-const port = 3000;
+const port = 8080;
 var ngUrl;
 const client = new discord_js_1.Client({
     intents: [discord_js_1.GatewayIntentBits.Guilds, discord_js_1.GatewayIntentBits.GuildMessages, discord_js_1.GatewayIntentBits.MessageContent, discord_js_1.GatewayIntentBits.GuildMembers, discord_js_1.GatewayIntentBits.GuildMessageReactions]
