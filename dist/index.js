@@ -34,11 +34,9 @@ const Functions = __importStar(require("./functions/functions.export"));
 const classes_export_1 = require("./classes/classes.export");
 const path_1 = __importDefault(require("path"));
 const express_1 = __importDefault(require("express"));
-const ngrock = require('ngrok');
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-const port = 80;
-var ngUrl;
+const port = 3000;
 const client = new discord_js_1.Client({
     intents: [discord_js_1.GatewayIntentBits.Guilds, discord_js_1.GatewayIntentBits.GuildMessages, discord_js_1.GatewayIntentBits.MessageContent, discord_js_1.GatewayIntentBits.GuildMembers, discord_js_1.GatewayIntentBits.GuildMessageReactions]
 });
@@ -106,11 +104,6 @@ client.once('ready', async () => {
     }
     app.listen(port, async () => {
         console.log(`\nServidor Express rodando na porta ${port}`);
-        ngUrl = await ngrock.connect({
-            addr: port,
-            authtoken: process.env.NGROK_AUTH_TOKEN
-        });
-        console.log('\nServidor Ngrok rodando no momento: ', ngUrl);
     });
 });
 client.on('messageCreate', async (message) => {

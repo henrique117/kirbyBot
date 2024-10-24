@@ -7,13 +7,10 @@ import { ManageGuildVariables } from './classes/classes.export'
 import path from 'path'
 import express from 'express'
 
-const ngrock = require('ngrok')
 dotenv.config()
 
 const app = express()
-const port = 80
-
-var ngUrl: any
+const port = 3000
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessageReactions]
@@ -91,13 +88,6 @@ client.once('ready', async () => {
 
     app.listen(port, async () => {
         console.log(`\nServidor Express rodando na porta ${port}`)
-
-        ngUrl = await ngrock.connect({
-            addr: port,
-            authtoken: process.env.NGROK_AUTH_TOKEN
-        })
-
-        console.log('\nServidor Ngrok rodando no momento: ', ngUrl)
     })
 })
 
