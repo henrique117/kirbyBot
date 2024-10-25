@@ -192,7 +192,7 @@ class APICalls {
                     const data = response.data.ranking;
                     data.forEach((player) => {
                         if (player.global_rank < 100000 && player.global_rank > 9999 && player.user.is_online == true)
-                            players.push(`${player.user.username}: https://osu.ppy.sh/users/${player.user.id}`);
+                            players.push(`${player.user.username} **#${player.global_rank}**: https://osu.ppy.sh/community/chat?sendto=${player.user.id}`);
                     });
                     if (data[data.length - 1].global_rank > 99999) {
                         isFinished = true;

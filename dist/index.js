@@ -42,6 +42,10 @@ const client = new discord_js_1.Client({
 });
 const api = new apiCalls_1.default();
 const guildVariables = new classes_export_1.ManageGuildVariables();
+app.get('/', async (_, res) => {
+    res.send('Listening the port 8080');
+    console.log('To vivo!');
+});
 app.get('/kirby/auth', async (req, res) => {
     res.redirect('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
     const authorizationCode = req.query.code;
@@ -52,15 +56,20 @@ app.get('/kirby/auth', async (req, res) => {
         user = state.split(',')[0];
         guild = state.split(',')[1];
     }
-    const osuUsername = await api.getUserFromAuth(authorizationCode);
-    const targetGuild = client.guilds.cache.get(guild);
-    if (!targetGuild)
-        return console.log('Server não encontrado');
-    const targetUser = targetGuild.members.fetch(user);
-    if (!targetUser)
-        return console.log('User não encontrado no server');
-    (await targetUser).setNickname(osuUsername);
-    (await targetUser).roles.add('1297726959077294090');
+    try {
+        const osuUsername = await api.getUserFromAuth(authorizationCode);
+        const targetGuild = client.guilds.cache.get(guild);
+        if (!targetGuild)
+            return console.log('Server não encontrado');
+        const targetUser = targetGuild.members.fetch(user);
+        if (!targetUser)
+            return console.log('User não encontrado no server');
+        (await targetUser).setNickname(osuUsername);
+        (await targetUser).roles.add('1299476612965728378');
+    }
+    catch {
+        return console.log('Missing permissions');
+    }
 });
 process.on('SIGINT', () => {
     console.log('\nBot está sendo desligado...');
@@ -133,15 +142,31 @@ client.on('messageCreate', async (message) => {
             await botMessage?.edit('Houve um erro ao procurar os players');
         }
         finally {
-            const playersString = players.join('\n');
-            fs_1.default.writeFileSync(path_1.default.resolve(__dirname, './players_online.txt'), playersString);
-            if (fs_1.default.existsSync(path_1.default.resolve(__dirname, './players_online.txt'))) {
-                await botMessage?.edit({ content: `Tudo pronto, players achados online:`, files: [path_1.default.resolve(__dirname, './players_online.txt')] });
-                fs_1.default.unlinkSync(path_1.default.resolve(__dirname, './players_online.txt'));
+            await botMessage?.edit({ content: `Tudo pronto, players achados online:` });
+            const playerEmbeds = [];
+            const pages = (players.length / 10) + 1;
+            const lastPage = players.length % 10;
+            let embedVector = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+            let cont = 0;
+            for (let i = 0; i < pages; i++) {
+                if (i == pages - 1) {
+                    for (let j = 0; j < 10 - lastPage; j++) {
+                        embedVector.pop();
+                    }
+                    for (let j = 0; j < lastPage; j++) {
+                        embedVector[j] = players[cont];
+                        cont++;
+                    }
+                }
+                else {
+                    for (let j = 0; j < 10; j++) {
+                        embedVector[j] = players[cont];
+                        cont++;
+                    }
+                }
+                playerEmbeds.push(await Functions.playerEmbedBuilder(embedVector));
             }
-            else {
-                await botMessage?.edit('Houve um erro ao gerar arquivo');
-            }
+            await Functions.embedPagination(message, playerEmbeds);
         }
     }
     if (message.content === '%h' || message.content === '%help') {
@@ -255,7 +280,7 @@ client.on('messageCreate', async (message) => {
             return message.reply('Add me permissions!!');
         const checkTournmentConfig = guildVariables.getGuildConfig(message.guild?.id);
         if (!checkTournmentConfig?.tournment_configs) {
-            return message.reply('Turn on the tournment configs using <%tc on> or <%tournmentconfigs on>');
+            return message.reply('Turn on the tournament configs using <%tc on> or <%tournmentconfigs on>');
         }
         const channelName = `${message.author.username}`;
         let newChannel;

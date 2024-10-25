@@ -19,6 +19,11 @@ const client = new Client({
 const api = new APICalls()
 const guildVariables = new ManageGuildVariables()
 
+app.get('/', async (_, res) => {
+    res.send('Listening the port 8080')
+    console.log('To vivo!')
+})
+
 app.get('/kirby/auth', async (req, res) => {
     res.redirect('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
     const authorizationCode: any = req.query.code
@@ -32,18 +37,22 @@ app.get('/kirby/auth', async (req, res) => {
         guild = state.split(',')[1]
     }
 
-    const osuUsername = await api.getUserFromAuth(authorizationCode)
+    try {
+        const osuUsername = await api.getUserFromAuth(authorizationCode)
 
-    const targetGuild = client.guilds.cache.get(guild)
+        const targetGuild = client.guilds.cache.get(guild)
 
-    if(!targetGuild) return console.log('Server não encontrado')
+        if(!targetGuild) return console.log('Server não encontrado')
 
-    const targetUser = targetGuild.members.fetch(user)
+        const targetUser = targetGuild.members.fetch(user)
 
-    if(!targetUser) return console.log('User não encontrado no server')
+        if(!targetUser) return console.log('User não encontrado no server')
 
-    ;(await targetUser).setNickname(osuUsername)
-    ;(await targetUser).roles.add('1297726959077294090')
+        ;(await targetUser).setNickname(osuUsername)
+        ;(await targetUser).roles.add('1299476612965728378')
+    } catch {
+        return console.log('Missing permissions')
+    }
 })
 
 process.on('SIGINT', () => {
@@ -118,14 +127,36 @@ client.on('messageCreate', async (message) => {
         } catch {
             await botMessage?.edit('Houve um erro ao procurar os players')
         } finally {
-            const playersString = players.join('\n')
-            fs.writeFileSync(path.resolve(__dirname, './players_online.txt'), playersString)
-            if(fs.existsSync(path.resolve(__dirname, './players_online.txt'))) {
-                await botMessage?.edit({ content: `Tudo pronto, players achados online:`, files: [path.resolve(__dirname, './players_online.txt')] })
-                fs.unlinkSync(path.resolve(__dirname, './players_online.txt'))
-            } else {
-                await botMessage?.edit('Houve um erro ao gerar arquivo')
+            await botMessage?.edit({ content: `Tudo pronto, players achados online:` })
+
+            const playerEmbeds: any[] = []
+            const pages = (players.length / 10) + 1
+            const lastPage = players.length % 10
+
+            let embedVector = [0,0,0,0,0,0,0,0,0,0]
+            let cont = 0
+
+            for(let i = 0; i < pages; i++) {
+                if (i == pages - 1) {
+                    for (let j = 0; j < 10 - lastPage; j++) {
+                        embedVector.pop()
+                    }
+                    for (let j = 0; j < lastPage; j++) {
+                        embedVector[j] = players[cont]
+                        cont++
+                    }
+                } else {
+                    for(let j = 0; j < 10; j++) {
+                        embedVector[j] = players[cont]
+                        cont++
+                    }
+                }
+    
+                playerEmbeds.push(await Functions.playerEmbedBuilder(embedVector))
+    
             }
+
+            await Functions.embedPagination(message, playerEmbeds)
         }
     }
 
@@ -252,7 +283,7 @@ client.on('messageCreate', async (message) => {
         
         const checkTournmentConfig = guildVariables.getGuildConfig(message.guild?.id)
         if (!checkTournmentConfig?.tournment_configs) {
-            return message.reply('Turn on the tournment configs using <%tc on> or <%tournmentconfigs on>')
+            return message.reply('Turn on the tournament configs using <%tc on> or <%tournmentconfigs on>')
         }
     
         const channelName = `${message.author.username}`
