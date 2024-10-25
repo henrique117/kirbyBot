@@ -10,7 +10,7 @@ import express from 'express'
 dotenv.config()
 
 const app = express()
-const port = 3000
+const port =  process.env.PORT || 8080
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessageReactions]
@@ -42,7 +42,8 @@ app.get('/kirby/auth', async (req, res) => {
 
     if(!targetUser) return console.log('User não encontrado no server')
 
-    await (await targetUser).setNickname(osuUsername)
+    ;(await targetUser).setNickname(osuUsername)
+    ;(await targetUser).roles.add('1297726959077294090')
 })
 
 process.on('SIGINT', () => {
@@ -99,8 +100,12 @@ client.on('messageCreate', async (message) => {
         return false
     }
 
-    if(message.content === '%auth') {
-        message.reply(`Clique [aqui](https://osu.ppy.sh/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&scope=public+identify&state=${message.author.id},${message.guild?.id}) para autenticar seu perfil!`)
+    if(message.content === '%auth' && message.channel.id === '1299405866973397012') {
+        await message.react('✅')
+        await message.author.send(`Clique no [link](https://osu.ppy.sh/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&scope=public+identify&state=${message.author.id},${message.guild?.id}) para autenticar seu perfil!`)
+        if(message) setTimeout(async () => {
+            await message.delete()
+        }, 3000);
     }
 
     if(message.content === '%inv' && message.channel.id === '1299009626427359232') {

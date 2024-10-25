@@ -36,7 +36,7 @@ const path_1 = __importDefault(require("path"));
 const express_1 = __importDefault(require("express"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-const port = 3000;
+const port = process.env.PORT || 8080;
 const client = new discord_js_1.Client({
     intents: [discord_js_1.GatewayIntentBits.Guilds, discord_js_1.GatewayIntentBits.GuildMessages, discord_js_1.GatewayIntentBits.MessageContent, discord_js_1.GatewayIntentBits.GuildMembers, discord_js_1.GatewayIntentBits.GuildMessageReactions]
 });
@@ -59,7 +59,8 @@ app.get('/kirby/auth', async (req, res) => {
     const targetUser = targetGuild.members.fetch(user);
     if (!targetUser)
         return console.log('User não encontrado no server');
-    await (await targetUser).setNickname(osuUsername);
+    (await targetUser).setNickname(osuUsername);
+    (await targetUser).roles.add('1297726959077294090');
 });
 process.on('SIGINT', () => {
     console.log('\nBot está sendo desligado...');
@@ -113,8 +114,13 @@ client.on('messageCreate', async (message) => {
             return true;
         return false;
     }
-    if (message.content === '%auth') {
-        message.reply(`Clique [aqui](https://osu.ppy.sh/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&scope=public+identify&state=${message.author.id},${message.guild?.id}) para autenticar seu perfil!`);
+    if (message.content === '%auth' && message.channel.id === '1299405866973397012') {
+        await message.react('✅');
+        await message.author.send(`Clique no [link](https://osu.ppy.sh/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&scope=public+identify&state=${message.author.id},${message.guild?.id}) para autenticar seu perfil!`);
+        if (message)
+            setTimeout(async () => {
+                await message.delete();
+            }, 3000);
     }
     if (message.content === '%inv' && message.channel.id === '1299009626427359232') {
         let botMessage;
