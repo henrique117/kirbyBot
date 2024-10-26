@@ -109,7 +109,7 @@ client.on('messageCreate', async (message) => {
         return false
     }
 
-    if(message.content === '%auth' && message.channel.id === '1299405866973397012') {
+    if(message.content === '%auth' && message.channel.id === '1299483668003426456') {
         await message.react('✅')
         await message.author.send(`Clique no [link](https://osu.ppy.sh/oauth/authorize?client_id=${process.env.CLIENT_ID}&response_type=code&scope=public+identify&state=${message.author.id},${message.guild?.id}) para autenticar seu perfil!`)
         if(message) setTimeout(async () => {
