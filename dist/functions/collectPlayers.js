@@ -5,28 +5,13 @@ async function helpEmbedBuilder(channel, event) {
     const collectorUsernameFilter = (m) => {
         return m.author.id === event.author.id;
     };
-    const collectorIDFilter = (m) => {
-        return m.author.id === event.author.id && /^[0-9]+$/.test(m.content);
-    };
     const reactionFilter = (_, user) => {
         return !user.bot && user.id === event.author.id;
     };
     const users = [];
-    try {
-        const collected = await channel.awaitMessages({ filter: collectorUsernameFilter, max: 1, time: 60000, errors: ['time'] });
-        const userMessage = collected.first();
-        if (userMessage)
-            users.push(userMessage.content);
-    }
-    catch {
-        return false;
-    }
-    finally {
-        await channel.send('Agora digite o ID do Osu! desse usuário:');
-    }
     let botMessage;
     try {
-        const collected = await channel.awaitMessages({ filter: collectorIDFilter, max: 1, time: 60000, errors: ['time'] });
+        const collected = await channel.awaitMessages({ filter: collectorUsernameFilter, max: 1, time: 60000, errors: ['time'] });
         const userMessage = collected.first();
         if (userMessage)
             users.push(userMessage.content);
@@ -44,21 +29,9 @@ async function helpEmbedBuilder(channel, event) {
         const userReaction = collected.first();
         botMessage.reactions.removeAll();
         if (userReaction?.emoji.name === '✅') {
-            await botMessage.edit('Tudo certo, vamos repetir o processo, digite o username do seu segundo teamate:');
+            await botMessage.edit('Tudo certo, vamos repetir o processo, digite o nick do osu do seu segundo teamate:');
             try {
                 const collected = await channel.awaitMessages({ filter: collectorUsernameFilter, max: 1, time: 60000, errors: ['time'] });
-                const userMessage = collected.first();
-                if (userMessage)
-                    users.push(userMessage.content);
-            }
-            catch {
-                return false;
-            }
-            finally {
-                await channel.send('Agora digite o ID do Osu! desse usuário:');
-            }
-            try {
-                const collected = await channel.awaitMessages({ filter: collectorIDFilter, max: 1, time: 60000, errors: ['time'] });
                 const userMessage = collected.first();
                 if (userMessage)
                     users.push(userMessage.content);

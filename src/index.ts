@@ -24,8 +24,7 @@ app.get('/', async (_, res) => {
     console.log('To vivo!')
 })
 
-app.get('/kirby/auth', async (req, res) => {
-    res.redirect('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+app.get('/kirby/auth', async (req, _) => {
     const authorizationCode: any = req.query.code
     const state: any = req.query.state
 
@@ -123,7 +122,7 @@ client.on('messageCreate', async (message) => {
         try {
             botMessage = await message.reply('Procurando os 5 digitos safados online...')
 
-            players = await api.get5digitsOnline()
+            players = await api.get5digitsOnline(client, message.guild?.id)
         } catch {
             await botMessage?.edit('Houve um erro ao procurar os players')
         } finally {
@@ -318,37 +317,10 @@ client.on('messageCreate', async (message) => {
     
         if (!newChannel) return
     
-        let osuUsername: string
         let botMessages: Message<true> | undefined
     
-        await newChannel.send(`<@${message.author.id}> Manda o ID do seu perfil do Osu! aqui:`)
-    
-        const collectorFilter = (m: Message) => {
-            return m.author.id === message.author.id && /^[0-9]+$/.test(m.content)
-        }
-    
         try {
-            const collected = await newChannel.awaitMessages({ filter: collectorFilter, max: 1, time: 30_000, errors: ['time'] })
-            const userMessage = collected.first()
-    
-            botMessages = await newChannel.send('Procurando seu perfil...')
-    
-            if (userMessage) {
-                osuUsername = await api.getUserById(parseInt(userMessage.content))
-    
-                if (guildUser) {
-                    await guildUser.setNickname(`${osuUsername}`)
-                }
-    
-                await botMessages.edit(`Achei! Seu nome no servidor agora foi trocado, não precisa se preocupar com isso`)
-            }
-        } catch {
-            await newChannel.send('Você demorou muito para responder! Tente novamente.')
-            return newChannel.delete()
-        }
-    
-        try {
-            await botMessages?.edit('Ok, você está como capitão do seu time?')
+            botMessages = await newChannel.send('Olá! Você está como capitão do seu time?')
             await botMessages?.react('✅')
             await botMessages?.react('❌')
     
@@ -373,7 +345,7 @@ client.on('messageCreate', async (message) => {
     
             } else {
                 await botMessages.edit({
-                    content: 'Ótimo, digite o username do discord do seu primeiro teamate:',
+                    content: 'Ótimo, digite o nome do osu! do seu primeiro teamate:',
                     files: [{
                         attachment: path.resolve(__dirname, './assets/username.png'),
                     }],
@@ -381,34 +353,33 @@ client.on('messageCreate', async (message) => {
     
                 await botMessages.reactions.removeAll()
     
-                const teamates = await Functions.collectPlayers(newChannel, message)
-    
-                if (!teamates) throw new Error('Teamates não encontrados')
-    
-                let player1, player2, teamate1Username, teamate2Username
+                const teamates: any[] = []
     
                 try {
+
+                    botMessages = await newChannel.send('Iremos procurar os players do seu time...')
                     
-                    player1 = await message.guild?.members.fetch({ query: teamates[0], limit: 1 }).then(members => members.first())
-    
-                    if (teamates[2]) {
-                        player2 = await message.guild?.members.fetch({ query: teamates[2], limit: 1 }).then(members => members.first())
+                    const users = await Functions.collectPlayers(newChannel, message)
+                    const memberList = await message.guild.members.fetch()
+
+                    let player
+
+                    if(users[0]) {
+                        player = memberList.find(member => member.displayName === users[0])
+                        if(!player) await botMessages.edit(`Não conseguimos encontrar o **${users[0]}** no servidor, peça parar ele entrar e realizar a autenticação! e depois tente novamente fazer o cadastro!`)
+                        teamates.push(player)
+                    } else {
+                        throw new Error('Não foi passado o primeiro usuário')
                     }
-    
-                    botMessages = await newChannel.send('Trocando o nome dos teamates...')
-    
-                    if (player1) {
-                        teamate1Username = await api.getUserById(parseInt(teamates[1]))
-                        player1.setNickname(`${teamate1Username}`)
-                    }
-    
-                    if (teamates[2] && player2) {
-                        teamate2Username = await api.getUserById(parseInt(teamates[1]))
-                        player2.setNickname(`${teamate2Username}`)
+
+                    if(users[1]) {
+                        player = memberList.find(member => member.displayName === users[1])
+                        if(!player) await botMessages.edit(`Não conseguimos encontrar o **${users[1]}** no servidor, peça parar ele entrar e realizar a autenticação! e depois tente novamente fazer o cadastro!`)
+                        teamates.push(player)
                     }
     
                 } catch (error) {
-                    console.error('Erro ao trocar nomes dos teamates:', error)
+                    console.error(error)
                     await botMessages.edit('Algo deu errado...')
                 } finally {
                     await botMessages.edit('Ok, tudo certo, por último, qual é o nome do seu time?')
@@ -419,6 +390,7 @@ client.on('messageCreate', async (message) => {
                 }
     
                 let teamName: any
+                let player1 = teamates[0], player2 = teamates[1] ? teamates[1] : undefined
     
                 try {
                     const collected = await newChannel.awaitMessages({ filter: collectorTeamFilter, time: 30_000, errors: ['time'], max: 1 })
@@ -444,7 +416,7 @@ client.on('messageCreate', async (message) => {
                                 player1.roles.set([])
                                 guildUser.roles.add(role.id)
                                 player1.roles.add(role.id)
-                                if (teamates[2] && player2) {
+                                if (player2) {
                                     player2.roles.set([])
                                     player2.roles.add(role.id)
                                 }
@@ -457,12 +429,12 @@ client.on('messageCreate', async (message) => {
                             if(guildIDRoles && playerRole && captainRole && guildUser && player1) {
                                 guildUser.roles.add(captainRole)
                                 guildUser.roles.add(playerRole)
-                                guildUser.roles.add('1297726959077294090')
+                                guildUser.roles.add('1299476612965728378')
                                 player1.roles.add(playerRole)
-                                player1.roles.add('1297726959077294090')
-                                if (teamates[2] && player2) {
+                                player1.roles.add('1299476612965728378')
+                                if (player2) {
                                     player2.roles.add(playerRole)
-                                    player2.roles.add('1297726959077294090')
+                                    player2.roles.add('1299476612965728378')
                                 }
                             }
 

@@ -172,7 +172,11 @@ class APICalls {
             console.error(error);
         }
     }
-    async get5digitsOnline() {
+    async get5digitsOnline(client, guild) {
+        if (!guild)
+            return;
+        const guildSelected = client.guilds.fetch(guild);
+        const guildMembers = guildSelected.members.fetch();
         try {
             let page = 1;
             let isFinished = false;
@@ -191,7 +195,7 @@ class APICalls {
                     });
                     const data = response.data.ranking;
                     data.forEach((player) => {
-                        if (player.global_rank < 100000 && player.global_rank > 9999 && player.user.is_online == true)
+                        if (player.global_rank < 100000 && player.global_rank > 9999 && player.user.is_online == true && !guildMembers.find((member) => member.displayName.toLowerCase() === player.user.username.toLowerCase()))
                             players.push(`${player.user.username} **#${player.global_rank}**: https://osu.ppy.sh/community/chat?sendto=${player.user.id}`);
                     });
                     if (data[data.length - 1].global_rank > 99999) {
