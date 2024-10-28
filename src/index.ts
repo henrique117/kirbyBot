@@ -122,14 +122,20 @@ client.on('messageCreate', async (message) => {
         try {
             botMessage = await message.reply('Procurando os 5 digitos safados online...')
 
-            players = await api.get5digitsOnline(client, message.guild?.id)
+            if(!message.guild?.id) return
+
+            const guild = await client.guilds.fetch(message.guild.id)
+            const members = await guild.members.fetch()
+
+            players = await api.get5digitsOnline(members)
+
         } catch {
             await botMessage?.edit('Houve um erro ao procurar os players')
         } finally {
             await botMessage?.edit({ content: `Tudo pronto, players achados online:` })
 
             const playerEmbeds: any[] = []
-            const pages = (players.length / 10) + 1
+            const pages = Math.ceil((players.length / 10))
             const lastPage = players.length % 10
 
             let embedVector = [0,0,0,0,0,0,0,0,0,0]

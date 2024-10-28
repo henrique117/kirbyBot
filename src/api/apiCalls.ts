@@ -196,12 +196,7 @@ export default class APICalls {
         }
     }
 
-    public async get5digitsOnline(client: any, guild: string | undefined): Promise<any> {
-
-        if(!guild) return
-
-        const guildSelected = client.guilds.fetch(guild)
-        const guildMembers = guildSelected.members.fetch()
+    public async get5digitsOnline(guildMembers: any): Promise<any> {
 
         try {
             let page = 1
@@ -224,7 +219,8 @@ export default class APICalls {
                     const data = response.data.ranking
 
                     data.forEach((player: any) => {
-                        if(player.global_rank < 100000 && player.global_rank > 9999 && player.user.is_online == true && !guildMembers.find((member: any) => member.displayName.toLowerCase() === player.user.username.toLowerCase())) players.push(`${player.user.username} **#${player.global_rank}**: https://osu.ppy.sh/community/chat?sendto=${player.user.id}`)
+                        let playerAlreadyOnServer = !guildMembers.find((member: any) => member.displayName.toLowerCase() === player.user.username.toLowerCase())
+                        if(player.global_rank < 100000 && player.global_rank > 9999 && player.user.is_online == true && playerAlreadyOnServer) players.push(`${player.user.username} **#${player.global_rank}**: https://osu.ppy.sh/community/chat?sendto=${player.user.id}`)
                     })
 
                     if (data[data.length - 1].global_rank > 99999) {
